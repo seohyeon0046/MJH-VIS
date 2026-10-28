@@ -53,7 +53,18 @@ body { background: var(--paper); color: var(--ink); font-family: var(--f-body); 
 .tog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .grp { display: flex; flex-direction: column; gap: 6px; }
 .grp .lbl { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
-.note { font-family: var(--f-note); font-size: 15px; line-height: 1.6; min-height: 7.5em; transition: opacity .6s, transform .6s; }
+.note { font-family: var(--f-note); font-size: 14px; line-height: 1.55; min-height: 3.2em; margin: 0; transition: opacity .6s, transform .6s; }
+.botbox { display: flex; flex-direction: column; gap: 4px; }
+.botbox svg { width: 100%; max-width: 260px; height: auto; display: block; }
+.botbox svg * { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.botbox svg .thin { stroke-width: 1.2; stroke: var(--muted); }
+.botbox svg .accent { stroke: #FF7F00; }
+.botbox svg .fill { fill: var(--ink); stroke: none; }
+.botbox svg .ant { fill: #FF7F00; stroke: none; }
+.botbox svg .cone { fill: #FFB347; stroke: none; }
+.botbox svg .fillsoft { fill: #FFE2B8; }
+.botbox svg .screen { fill: #5C76EC; stroke: none; }
+.botbox svg .zz { font: 600 14px var(--f-mono); fill: var(--ink); stroke: none; }
 .note.out { opacity: 0; transform: translateY(12px); }
 .about { font-size: 11px; line-height: 1.55; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 10px; }
 .about a { color: var(--accent); }
@@ -62,7 +73,7 @@ h1 { font-size: 15px; font-weight: 600; margin: 0; }
 #c { width: 100%; aspect-ratio: 1 / 1; display: block; max-width: 100%; }
 @media (max-width: 720px) {
   .wrap { grid-template-columns: 1fr; gap: 12px; }
-  .note { min-height: 4.8em; font-size: 14px; }
+  .note { min-height: 3em; font-size: 13px; }
 }
 </style>
 </head>
@@ -98,7 +109,7 @@ h1 { font-size: 15px; font-weight: 600; margin: 0; }
         <button type="button" id="d-we" aria-pressed="false">주말</button>
       </div>
     </div>
-    <p class="note" id="note"></p>
+    <div class="botbox"><svg id="botSvg" viewBox="0 0 240 112" aria-hidden="true"></svg><p class="note" id="note"></p></div>
     <p class="about" id="about"></p>
   </aside>
   <div class="chart"><canvas id="c" aria-label="활동별로 모인 1,000명의 점"></canvas></div>
@@ -202,11 +213,74 @@ h1 { font-size: 15px; font-weight: 600; margin: 0; }
   }
   // running notes, by clock time; {side} etc. are filled from the dots on screen
   const NOTES = {
-    mjh_wd: [[4, 4.7, '실제 일지예요. 점 하나는 그날 부업을 한 미국 부업자 한 명이에요.'], [5.5, 7, '일찍 일어난 사람부터 하나둘 씻고 출근길에 나서요.'], [7.5, 9, '본업이 시작돼요. 부업자도 낮에는 대부분 본업 자리에 있어요.'], [12, 13, '점심시간. 본업에서 식사로 잠깐 빠졌다가 돌아와요.'], [15, 16.5, '본업이 끝나기도 전에 부업으로 옮겨 가는 사람들이 보여요.'], [17, 19, '퇴근하고 이동을 거쳐 두 번째 일터로. 지금 {side}가 부업 중이에요.'], [19.5, 21, '부업을 마친 사람들이 하나둘 식사와 여가로 넘어가요.'], [22, 24, '하루를 정리하고 잠자리로.']],
-    single_wd: [[4, 4.7, '실제 일지예요. 점 하나는 부업 없이 그날 본업을 한 미국 취업자 한 명이에요.'], [7.5, 9, '출근해서 본업이 시작돼요.'], [12, 13, '점심시간.'], [17, 19, '퇴근하면 저녁 식사와 여가로. 지금 본업 중 {main}.'], [19.5, 21, '부업자 화면과 비교해 보세요. 지금 여가에 {leisure}가 있어요.'], [22, 24, '하루를 정리하고 잠자리로.']],
-    mjh_we: [[4, 5, '주말이에요. 평일과 비교해 보세요.'], [10, 13, '주말 부업은 낮에 몰려요. 지금 {side}가 부업 중이에요.']],
-    single_we: [[4, 5, '주말이에요. 평일과 비교해 보세요.']],
+    // [from hour, to hour, sentence, robot scene, scene option]
+    mjh_wd: [[4, 4.7, '실제 일지예요. 점 하나는 그날 부업을 한 미국 부업자 한 명이에요.', 'hello'], [5.5, 7, '일찍 일어난 사람부터 하나둘 씻고 출근길에 나서요.', 'wake'], [7.5, 9, '본업이 시작돼요. 부업자도 낮에는 대부분 본업 자리에 있어요.', 'work'], [12, 13, '점심시간. 본업에서 식사로 잠깐 빠졌다가 돌아와요.', 'eat'], [15, 16.5, '본업이 끝나기도 전에 부업으로 옮겨 가는 사람들이 보여요.', 'walk', true], [17, 19, '퇴근하고 이동을 거쳐 두 번째 일터로. 지금 {side}가 부업 중이에요.', 'sidejob', 'night'], [19.5, 21, '부업을 마친 사람들이 하나둘 식사와 여가로 넘어가요.', 'relax'], [22, 24, '하루를 정리하고 잠자리로.', 'sleep']],
+    single_wd: [[4, 4.7, '실제 일지예요. 점 하나는 부업 없이 그날 본업을 한 미국 취업자 한 명이에요.', 'hello'], [7.5, 9, '출근해서 본업이 시작돼요.', 'work'], [12, 13, '점심시간.', 'eat'], [17, 19, '퇴근하면 저녁 식사와 여가로. 지금 본업 중 {main}.', 'walk'], [19.5, 21, '부업자 화면과 비교해 보세요. 지금 여가에 {leisure}가 있어요.', 'relax'], [22, 24, '하루를 정리하고 잠자리로.', 'sleep']],
+    mjh_we: [[4, 5, '주말이에요. 평일과 비교해 보세요.', 'hello'], [10, 13, '주말 부업은 낮에 몰려요. 지금 {side}가 부업 중이에요.', 'sidejob', 'day']],
+    single_we: [[4, 5, '주말이에요. 평일과 비교해 보세요.', 'hello']],
   };
+  // ---------- little line-drawn robot that acts out the note ----------
+  // scenes are plain SVG with SMIL animations; the caption keeps the sentence (and its live number) underneath
+  const botSvg = document.getElementById('botSvg'), botCap = document.getElementById('note');
+  const A = (attr, values, dur, extra = '') => `<animateTransform attributeName="transform" type="${attr}" values="${values}" dur="${dur}" repeatCount="indefinite" ${extra}/>`;
+  const fade = (values, dur, begin = '0s') => `<animate attributeName="opacity" values="${values}" dur="${dur}" begin="${begin}" repeatCount="indefinite"/>`;
+  function robot({ x = 120, y = 86, armL = '', armR = '', legL = '', legR = '', armLPose = 20, armRPose = -20, eyes = 'open', sit = false, rot = 0, carry = '' } = {}) {
+    const eye = eyes === 'open'
+      ? `<g transform="translate(0,-27)"><g><circle cx="-6" cy="0" r="2.2" class="fill"/><circle cx="6" cy="0" r="2.2" class="fill"/>${A('scale', '1 1;1 1;1 0.1;1 1', '4s', 'keyTimes="0;0.9;0.95;1"')}</g></g>`
+      : '<path d="M-9 -27 h5 M4 -27 h5"/>';
+    const legs = sit
+      ? '<path d="M-6 6 v4 h14 M4 6 v4 h14"/>'
+      : `<g transform="translate(-5,6)"><g><line x1="0" y1="0" x2="0" y2="12"/>${legL}</g></g><g transform="translate(5,6)"><g><line x1="0" y1="0" x2="0" y2="12"/>${legR}</g></g>`;
+    return `<g transform="translate(${x},${y}) rotate(${rot})">
+      <line x1="0" y1="-38" x2="0" y2="-45"/><circle cx="0" cy="-47.5" r="2.5" class="ant"/>
+      <rect x="-14" y="-38" width="28" height="22" rx="6"/>${eye}<path d="M-4 -21 q4 3 8 0"/>
+      <rect x="-11" y="-14" width="22" height="20" rx="5"/>
+      <g transform="translate(-11,-10)"><g transform="rotate(${armLPose})"><line x1="0" y1="0" x2="0" y2="14"/>${armL}</g></g>
+      <g transform="translate(11,-10)"><g transform="rotate(${armRPose})"><line x1="0" y1="0" x2="0" y2="14"/>${carry}${armR}</g></g>
+      ${legs}
+    </g>`;
+  }
+  const ground = '<line x1="20" y1="104" x2="220" y2="104" class="thin"/>';
+  const SCENES = {
+    hello: () => ground + robot({ armR: A('rotate', '-150;-115;-150', '0.9s'), armRPose: -150 }) +
+      '<path d="M150 38 q6 -6 12 0 M154 30 q6 -6 12 0" class="accent">' + fade('0;1;0', '1.8s') + '</path>',
+    wake: () => ground + '<g><circle cx="58" cy="0" r="11"/><path d="M58 -18 v-6 M40 0 h-6 M76 0 h6 M45 -13 l-4 -4 M71 -13 l4 -4"/>' + A('translate', '0 104;0 52;0 104', '6s') + '</g>' +
+      robot({ x: 135, armL: A('rotate', '160;140;160', '1.6s'), armR: A('rotate', '-160;-140;-160', '1.6s'), armLPose: 160, armRPose: -160 }),
+    walk: (accent) => '<line x1="20" y1="104" x2="220" y2="104" class="thin" stroke-dasharray="10 8"><animate attributeName="stroke-dashoffset" values="0;36" dur="0.6s" repeatCount="indefinite"/></line>' +
+      robot({
+        legL: A('rotate', '-25;25;-25', '0.6s'), legR: A('rotate', '25;-25;25', '0.6s'),
+        armL: A('rotate', '20;-20;20', '0.6s'), armR: A('rotate', '-20;20;-20', '0.6s'), armLPose: 0, armRPose: 0,
+        carry: `<rect x="-6" y="14" width="13" height="10" rx="2" class="${accent ? 'accent' : ''}"/>`,
+      }),
+    work: () => ground + '<path d="M128 78 h70 M140 78 v26 M188 78 v26"/><rect x="146" y="52" width="34" height="22" rx="3"/><path d="M163 74 v4"/>' +
+      '<path d="M151 59 h18 M151 64 h24 M151 69 h12" class="thin">' + fade('0.3;1;0.3', '1.2s') + '</path>' +
+      robot({ x: 112, armR: A('rotate', '-75;-60;-75', '0.3s'), armL: A('rotate', '-75;-60;-75', '0.3s', 'begin="0.15s"'), armRPose: -75, armLPose: -75 }),
+    eat: () => ground + '<path d="M128 80 h70"/><path d="M146 72 q14 16 28 0 z"/>' +
+      '<path d="M152 64 q3 -5 0 -10 M160 64 q3 -5 0 -10 M168 64 q3 -5 0 -10" class="thin">' + fade('0;1;0', '1.6s') + '<animateTransform attributeName="transform" type="translate" values="0 4;0 -4" dur="1.6s" repeatCount="indefinite"/></path>' +
+      robot({ x: 112, armR: A('rotate', '-70;-160;-70', '1.4s'), armRPose: -70, carry: '<path d="M0 14 l3 6"/>' }),
+    sidejob: (day) => ground + (day === 'day'
+      ? '<g><circle cx="44" cy="30" r="10"/><path d="M44 12 v-5 M26 30 h-5 M62 30 h5"/>' + A('rotate', '0 44 30;360 44 30', '12s') + '</g>'
+      : '<path d="M48 18 a14 14 0 1 0 12 22 a11 11 0 1 1 -12 -22 z"/><path d="M80 22 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" class="thin">' + fade('0.2;1;0.2', '2.4s') + '</path>') +
+      '<path d="M196 104 v-56 l-14 -8"/><path d="M176 36 l14 6 l-6 6 z" class="accent fillsoft"/><path d="M181 46 l-22 34 h44 z" class="cone">' + fade('0.25;0.45;0.25', '2s') + '</path>' +
+      '<path d="M128 80 h76"/><path d="M146 80 l4 -16 h26 l-4 16" class="accent"/>' +
+      robot({ x: 110, armR: A('rotate', '-80;-62;-80', '0.18s'), armL: A('rotate', '-80;-62;-80', '0.18s', 'begin="0.09s"'), armRPose: -80, armLPose: -80 }),
+    relax: () => ground + '<path d="M70 104 v-30 q0 -8 8 -8 h52 q8 0 8 8 v30 M64 84 h80"/>' +
+      '<rect x="160" y="54" width="44" height="30" rx="3"/><path d="M174 84 l-6 10 M190 84 l6 10"/><rect x="166" y="60" width="32" height="18" class="screen">' + fade('0.2;0.6;0.3;0.7;0.2', '1.3s') + '</rect>' +
+      robot({ x: 104, y: 78, sit: true, armRPose: -40, armLPose: 30, armR: A('rotate', '-40;-30;-40', '3s') }),
+    sleep: () => ground + '<path d="M50 104 v-22 h140 v22 M50 82 v-14 M190 82 v-10"/><rect x="56" y="72" width="22" height="9" rx="4"/>' +
+      robot({ x: 100, y: 72, rot: -90, eyes: 'closed', armRPose: 10, armLPose: -10 }) +
+      [0, 1, 2].map((i) => `<text x="${118 + i * 10}" y="${50 - i * 8}" class="zz">z${fade('0;1;0', '2.4s', i * 0.8 + 's')}<animateTransform attributeName="transform" type="translate" values="0 6;4 -8" dur="2.4s" begin="${i * 0.8}s" repeatCount="indefinite"/></text>`).join(''),
+  };
+  let botScene = '';
+  function setScene(name, arg) {
+    const id = name + (arg || '');
+    if (id === botScene) return;
+    botScene = id;
+    botSvg.innerHTML = SCENES[name](arg);
+    if (reduce && botSvg.pauseAnimations) botSvg.pauseAnimations();
+  }
+  // without a note, act out what most people are doing right now
+  const SCENE_OF = { 0: 'sleep', 1: 'wake', 2: 'work', 3: 'sidejob', 4: 'walk', 5: 'hello', 6: 'hello', 7: 'eat', 8: 'relax', 9: 'hello' };
   let noteIx = -1;
   function updateNote() {
     const h = (D.start_hour + state.t / 60), list = NOTES[key()];
@@ -219,7 +293,14 @@ h1 { font-size: 15px; font-weight: 600; margin: 0; }
   }
   function fillNote() {
     const tpl = noteEl.dataset.tpl || '';
-    noteEl.textContent = tpl.replace('{side}', pct(counts[SIDE])).replace('{main}', pct(counts[MAIN])).replace('{leisure}', pct(counts[LEISURE]));
+    // the robot: the note's scene, or else whatever most people are doing now
+    const list = NOTES[key()];
+    let top = 0; counts.forEach((c, k) => { if (c > counts[top]) top = k; });
+    if (noteIx >= 0) setScene(list[noteIx][3], list[noteIx][4]);
+    else { const hh = (D.start_hour + state.t / 60) % 24; setScene(SCENE_OF[top], SCENE_OF[top] === 'sidejob' ? (hh >= 7 && hh < 18 ? 'day' : 'night') : undefined); }
+    noteEl.textContent = tpl
+      ? tpl.replace('{side}', pct(counts[SIDE])).replace('{main}', pct(counts[MAIN])).replace('{leisure}', pct(counts[LEISURE]))
+      : `지금 가장 많은 활동: ${NAMES[top]} ${pct(counts[top])}`;
   }
   function updateAbout() {
     const g = D.groups[key()];
